@@ -80,11 +80,11 @@ function getRelevesMensuels(event) {
   const mois = String(event.parameter.mois || '');
   const all = rows(SHEETS.releves);
   const releves = all
-    .filter(r => !mois || String(r.MOIS) === mois)
+    .filter(r => !mois || monthToKey(r.MOIS) === mois)
     .map(r => ({
       id: String(r.ID_RELEVE || ''),
       timestamp: dateToText(r.TIMESTAMP),
-      mois: String(r.MOIS || ''),
+      mois: monthToKey(r.MOIS),
       idConducteur: String(r.ID_CONDUCTEUR || ''),
       nom: String(r.NOM || ''),
       prenom: String(r.PRENOM || ''),
@@ -146,7 +146,11 @@ function saveReleveMensuel(payload, event) {
     COMMENTAIRE: releve.commentaire || ''
   };
 
-  sheet(SHEETS.releves).appendRow(headers.map(h => row[h] ?? ''));
+  const sh = sheet(SHEETS.releves);
+  const nextRow = sh.getLastRow() + 1;
+  sh.getRange(nextRow, 1, 1, headers.length).setValues([headers.map(h => row[h] ?? '')]);
+  sh.getRange(nextRow, 3).setNumberFormat('@').setValue(String(row.MOIS || ''));
+  sh.getRange(nextRow, 9).setNumberFormat('@').setValue(String(row.DATE_RELEVE || ''));
   audit('ENVOI_RELEVE', conducteur, `Mois ${row.MOIS}, engin ${row.IMMATRICULATION}, site ${row.SITE}`, event);
   envoyerMailResponsable(row);
 
@@ -237,6 +241,17 @@ function dateToIso(value) {
     return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
   }
   return String(value).slice(0, 10);
+}
+
+function monthToKey(value) {
+  if (!value) return '';
+  if (Object.prototype.toString.call(value) === '[object Date]') {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM');
+  }
+  const text = String(value);
+  const match = text.match(/^(\d{4})-(\d{2})/);
+  if (match) return match[1] + '-' + match[2];
+  return text.slice(0, 7);
 }
 
 function dateToText(value) {

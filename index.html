@@ -61,6 +61,9 @@
   .historique-date{font-family:var(--font-mono);font-size:11px;color:var(--gris-fonce);white-space:nowrap}
   .toolbar-resp{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:16px 0}
   .toolbar-resp .field{max-width:210px}
+  .segmented{display:flex;border:2px solid var(--noir);box-shadow:2px 2px 0 var(--noir)}
+  .segmented button{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;border:0;border-right:1px solid var(--noir);background:var(--blanc);color:var(--noir);padding:11px 12px;cursor:pointer}
+  .segmented button:last-child{border-right:0}.segmented button.actif{background:var(--accent);color:var(--blanc)}
   .vehicule-card{border:var(--bordure);background:white;margin:12px 0}
   .vehicule-head{background:var(--accent);color:var(--blanc);font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;padding:10px 12px}
   .releve-card{border-top:var(--bordure-fine);padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:13px}
@@ -160,9 +163,16 @@
           <label class="label" for="mois-responsable">Mois consulte</label>
           <input class="field" type="month" id="mois-responsable">
         </div>
+        <div>
+          <span class="label">Regroupement</span>
+          <div class="segmented">
+            <button id="btn-group-vehicule" class="actif" onclick="changerGroupementResponsable('vehicule')">Vehicule</button>
+            <button id="btn-group-chauffeur" onclick="changerGroupementResponsable('chauffeur')">Chauffeur</button>
+          </div>
+        </div>
         <button class="btn btn-primary" onclick="chargerRelevesResponsable()">Actualiser</button>
       </div>
-      <h2>Releves par vehicule</h2>
+      <h2 id="responsable-titre">Releves par vehicule</h2>
       <div id="responsable-contenu" class="empty-state">Aucun relevé chargé.</div>
     </div>
 
@@ -189,6 +199,8 @@ const CONDUCTEURS_DEMO = [
 ];
 
 let utilisateur = null;
+let relevesResponsable = [];
+let groupementResponsable = 'vehicule';
 
 function estAPIConfiguree(){return API_URL && !API_URL.includes('COLLER_ICI');}
 function apiObligatoire(){
@@ -348,6 +360,7 @@ async function chargerRelevesResponsable(){
   }
 }
 function renderResponsable(releves){
+  relevesResponsable = releves;
   const zone=document.getElementById('responsable-contenu');
   if(!releves.length){
     zone.className='empty-state';
@@ -355,11 +368,14 @@ function renderResponsable(releves){
     return;
   }
   const groupes = releves.reduce((acc,r)=>{
-    const key=(r.immatriculation || 'Sans immatriculation').toUpperCase();
+    const key = groupementResponsable === 'chauffeur'
+      ? (`${r.prenom || ''} ${r.nom || ''}`.trim() || 'Sans chauffeur')
+      : ((r.immatriculation || 'Sans immatriculation').toUpperCase());
     if(!acc[key]) acc[key]=[];
     acc[key].push(r);
     return acc;
   },{});
+  document.getElementById('responsable-titre').textContent = groupementResponsable === 'chauffeur' ? 'Releves par chauffeur' : 'Releves par vehicule';
   zone.className='';
   zone.innerHTML=Object.entries(groupes).sort(([a],[b])=>a.localeCompare(b)).map(([immat,items])=>`
     <div class="vehicule-card">
@@ -378,6 +394,12 @@ function renderResponsable(releves){
       `).join('')}
     </div>
   `).join('');
+}
+function changerGroupementResponsable(mode){
+  groupementResponsable = mode;
+  document.getElementById('btn-group-vehicule').classList.toggle('actif', mode === 'vehicule');
+  document.getElementById('btn-group-chauffeur').classList.toggle('actif', mode === 'chauffeur');
+  renderResponsable(relevesResponsable);
 }
 function enregistrerHistorique(releve){
   const historique=JSON.parse(localStorage.getItem(cleHistorique()) || '[]');
