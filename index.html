@@ -122,7 +122,11 @@
       <div class="form-grid">
         <div class="form-row">
           <label class="label" for="site">Site</label>
-          <input class="field" id="site" type="text" autocomplete="off" oninput="sauvegarderLocal()">
+          <input class="field" id="site" type="text" list="sites-presets" autocomplete="off" oninput="sauvegarderLocal()">
+          <datalist id="sites-presets">
+            <option value="Saint-Jean-de-Védas"></option>
+            <option value="Marguerittes"></option>
+          </datalist>
         </div>
         <div class="form-row">
           <label class="label" for="date-releve">Date</label>
