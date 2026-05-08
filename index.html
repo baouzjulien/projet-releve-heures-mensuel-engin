@@ -55,14 +55,21 @@
   .btn{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:11px 18px;border:2px solid var(--noir);cursor:pointer;background:var(--blanc);color:var(--noir);box-shadow:2px 2px 0 var(--noir)}
   .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}.btn-primary{background:var(--accent);color:var(--blanc)}.btn-success{background:var(--vert);color:white;border-color:var(--vert)}
   .save-status{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--gris-fonce)}
-  .historique{padding:0 22px 18px}
-  .historique h2{font-family:var(--font-mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gris-fonce);margin:8px 0}
+  .historique,.responsable-zone{padding:0 22px 18px}
+  .historique h2,.responsable-zone h2{font-family:var(--font-mono);font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gris-fonce);margin:8px 0}
   .historique-item{border-top:var(--bordure-fine);padding:9px 0;font-size:13px;display:flex;justify-content:space-between;gap:12px}
   .historique-date{font-family:var(--font-mono);font-size:11px;color:var(--gris-fonce);white-space:nowrap}
+  .toolbar-resp{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin:16px 0}
+  .toolbar-resp .field{max-width:210px}
+  .vehicule-card{border:var(--bordure);background:white;margin:12px 0}
+  .vehicule-head{background:var(--accent);color:var(--blanc);font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.7px;text-transform:uppercase;padding:10px 12px}
+  .releve-card{border-top:var(--bordure-fine);padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;font-size:13px}
+  .releve-card strong{font-family:var(--font-mono);font-size:10px;text-transform:uppercase;color:var(--gris-fonce);display:block;margin-bottom:2px}
+  .empty-state{border:var(--bordure-fine);padding:18px;background:rgba(255,255,255,.45);font-family:var(--font-mono);font-size:12px;color:var(--gris-fonce)}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--noir);color:var(--blanc);font-family:var(--font-mono);font-size:12px;padding:12px 20px;border:2px solid var(--blanc);box-shadow:4px 4px 0 rgba(0,0,0,.3);opacity:0;transition:all .3s;z-index:1000;white-space:nowrap}.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
   @media (max-width:640px){
     body{padding:14px 10px 48px}.entete{padding:16px;align-items:flex-start}.app-logo{width:58px;height:58px}.titre-doc{font-size:20px}
-    .form-zone{padding:16px}.identite,.form-grid{grid-template-columns:1fr}.actions{padding:12px}.save-status{width:100%;margin-left:0}.btn{font-size:10px;padding:10px 12px}
+    .form-zone{padding:16px}.identite,.form-grid,.releve-card{grid-template-columns:1fr}.actions{padding:12px}.save-status{width:100%;margin-left:0}.btn{font-size:10px;padding:10px 12px}
   }
   @media print{body{background:white;padding:0}#login-screen,.user-bar,.actions{display:none!important}.document{box-shadow:none;border:1px solid black}}
 </style>
@@ -97,7 +104,7 @@
       </div>
     </div>
 
-    <div class="form-zone">
+    <div class="form-zone" id="form-zone">
       <div class="identite">
         <div class="id-card">
           <span class="label">Chauffeur</span>
@@ -143,11 +150,23 @@
     </div>
 
     <div class="historique" id="historique-zone" style="display:none">
-      <h2>Derniers envois locaux</h2>
+      <h2>Derniers envois confirmes</h2>
       <div id="historique"></div>
     </div>
 
-    <div class="actions">
+    <div class="responsable-zone" id="responsable-zone" style="display:none">
+      <div class="toolbar-resp">
+        <div>
+          <label class="label" for="mois-responsable">Mois consulte</label>
+          <input class="field" type="month" id="mois-responsable">
+        </div>
+        <button class="btn btn-primary" onclick="chargerRelevesResponsable()">Actualiser</button>
+      </div>
+      <h2>Releves par vehicule</h2>
+      <div id="responsable-contenu" class="empty-state">Aucun relevé chargé.</div>
+    </div>
+
+    <div class="actions" id="actions-zone">
       <button class="btn btn-success" id="btn-envoyer" onclick="envoyerReleve()">Envoyer</button>
       <button class="btn btn-primary" onclick="exportCSV()">CSV</button>
       <button class="btn" onclick="imprimer()">Imprimer</button>
@@ -172,6 +191,12 @@ const CONDUCTEURS_DEMO = [
 let utilisateur = null;
 
 function estAPIConfiguree(){return API_URL && !API_URL.includes('COLLER_ICI');}
+function apiObligatoire(){
+  if(estAPIConfiguree()) return true;
+  afficherStatut('API Google Sheets non configuree','var(--rouge)');
+  afficherToast('Google Sheets non configure');
+  return false;
+}
 function afficherToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 function afficherStatut(msg,couleur='var(--gris-fonce)'){const el=document.getElementById('save-status');el.textContent=msg;el.style.color=couleur;}
 function moisCourant(){return new Date().toISOString().slice(0,7);}
@@ -192,8 +217,23 @@ function afficherAppli(){
   document.getElementById('user-nom').textContent = nomComplet;
   document.getElementById('user-role').textContent = utilisateur.role || 'employe';
   document.getElementById('chauffeur-identite').textContent = nomComplet;
+  document.getElementById('mois-responsable').value = moisCourant();
+  if(utilisateur.role === 'responsable') afficherVueResponsable(); else afficherVueEmploye();
+}
+function afficherVueEmploye(){
+  document.getElementById('form-zone').style.display='block';
+  document.getElementById('historique-zone').style.display='none';
+  document.getElementById('responsable-zone').style.display='none';
+  document.getElementById('actions-zone').style.display='flex';
   chargerBrouillon();
   afficherHistorique();
+}
+function afficherVueResponsable(){
+  document.getElementById('form-zone').style.display='none';
+  document.getElementById('historique-zone').style.display='none';
+  document.getElementById('responsable-zone').style.display='block';
+  document.getElementById('actions-zone').style.display='none';
+  chargerRelevesResponsable();
 }
 async function seConnecter(){
   const pin=document.getElementById('pin-input').value.trim();
@@ -207,7 +247,7 @@ async function seConnecter(){
     btn.disabled=false;return;
   }
   try{
-    const res=await fetch(`${API_URL}?action=login&pin=${encodeURIComponent(pin)}`);
+    const res=await fetch(`${API_URL}?action=login&pin=${encodeURIComponent(pin)}&userAgent=${encodeURIComponent(navigator.userAgent)}`);
     const json=await res.json();
     if(json.success){utilisateur=json.user;localStorage.setItem('releve_engins_session',JSON.stringify(utilisateur));afficherAppli();}
     else err.textContent='PIN incorrect.';
@@ -257,27 +297,87 @@ function verifierReleve(d){
   return '';
 }
 async function envoyerReleve(){
+  if(!apiObligatoire()) return;
   const releve=lireFormulaire();
   const erreur=verifierReleve(releve);
   if(erreur){afficherToast(erreur);return;}
   const btn=document.getElementById('btn-envoyer');btn.disabled=true;btn.textContent='Envoi...';afficherStatut('Envoi en cours...');
   const payload={action:'saveReleveMensuel', conducteur:utilisateur, releve};
   try{
-    if(estAPIConfiguree()){
-      const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(payload)});
-      const json=await res.json();
-      if(!json.success)throw new Error(json.error || 'Erreur envoi');
-    }
+    const res=await fetch(`${API_URL}?userAgent=${encodeURIComponent(navigator.userAgent)}`,{method:'POST',body:JSON.stringify(payload)});
+    const json=await res.json();
+    if(!json.success)throw new Error(json.error || 'Erreur envoi');
     enregistrerHistorique(releve);
     localStorage.removeItem(cleBrouillon());
     afficherStatut('Envoye', 'var(--vert)');
-    afficherToast('Releve envoye');
+    afficherToast('Releve envoye au Google Sheet');
     nouveauReleve(false);
   }catch(e){
     afficherStatut('Erreur envoi','var(--rouge)');
     afficherToast('Envoi impossible');
   }
   btn.disabled=false;btn.textContent='Envoyer';
+}
+async function chargerRelevesResponsable(){
+  const zone=document.getElementById('responsable-contenu');
+  const mois=document.getElementById('mois-responsable').value || moisCourant();
+  if(!apiObligatoire()){
+    zone.className='empty-state';
+    zone.textContent='API Google Sheets non configuree.';
+    return;
+  }
+  zone.className='empty-state';
+  zone.textContent='Chargement...';
+  try{
+    const params = new URLSearchParams({
+      action:'getRelevesMensuels',
+      mois,
+      idUtilisateur:utilisateur.id,
+      nom:utilisateur.nom,
+      prenom:utilisateur.prenom,
+      role:utilisateur.role,
+      userAgent:navigator.userAgent
+    });
+    const res=await fetch(`${API_URL}?${params.toString()}`);
+    const json=await res.json();
+    if(!json.success) throw new Error(json.error || 'Erreur chargement');
+    renderResponsable(json.releves || []);
+  }catch(e){
+    zone.className='empty-state';
+    zone.textContent='Impossible de charger les releves.';
+  }
+}
+function renderResponsable(releves){
+  const zone=document.getElementById('responsable-contenu');
+  if(!releves.length){
+    zone.className='empty-state';
+    zone.textContent='Aucun releve pour ce mois.';
+    return;
+  }
+  const groupes = releves.reduce((acc,r)=>{
+    const key=(r.immatriculation || 'Sans immatriculation').toUpperCase();
+    if(!acc[key]) acc[key]=[];
+    acc[key].push(r);
+    return acc;
+  },{});
+  zone.className='';
+  zone.innerHTML=Object.entries(groupes).sort(([a],[b])=>a.localeCompare(b)).map(([immat,items])=>`
+    <div class="vehicule-card">
+      <div class="vehicule-head">${echapperHTML(immat)} - ${items.length} releve${items.length>1?'s':''}</div>
+      ${items.map(r=>`
+        <div class="releve-card">
+          <div><strong>Chauffeur</strong>${echapperHTML(`${r.prenom || ''} ${r.nom || ''}`.trim())}</div>
+          <div><strong>Envoye le</strong>${echapperHTML(r.timestamp)}</div>
+          <div><strong>Site</strong>${echapperHTML(r.site)}</div>
+          <div><strong>Date releve</strong>${echapperHTML(r.dateReleve)}</div>
+          <div><strong>Heure porteur</strong>${echapperHTML(r.heurePorteur)}</div>
+          <div><strong>Heure auxiliaires</strong>${echapperHTML(r.heureAuxiliaires)}</div>
+          <div><strong>Kilometrage</strong>${echapperHTML(r.kilometrage)}</div>
+          <div><strong>Commentaire</strong>${echapperHTML(r.commentaire || '-')}</div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
 }
 function enregistrerHistorique(releve){
   const historique=JSON.parse(localStorage.getItem(cleHistorique()) || '[]');
