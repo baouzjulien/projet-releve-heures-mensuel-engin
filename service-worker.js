@@ -1,4 +1,4 @@
-const CACHE_NAME = 'releve-heures-engins-hr-v4';
+const CACHE_NAME = 'releve-heures-engins-hr-v5';
 const FILES = [
   './index.html',
   './manifest.json',

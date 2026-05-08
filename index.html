@@ -171,6 +171,8 @@
           </div>
         </div>
         <button class="btn btn-primary" onclick="chargerRelevesResponsable()">Actualiser</button>
+        <button class="btn" onclick="exportResponsableCSV()">CSV</button>
+        <button class="btn" onclick="exportResponsableExcel()">Excel</button>
       </div>
       <h2 id="responsable-titre">Releves par vehicule</h2>
       <div id="responsable-contenu" class="empty-state">Aucun relevé chargé.</div>
@@ -178,15 +180,13 @@
 
     <div class="actions" id="actions-zone">
       <button class="btn btn-success" id="btn-envoyer" onclick="envoyerReleve()">Envoyer</button>
-      <button class="btn btn-primary" onclick="exportCSV()">CSV</button>
-      <button class="btn" onclick="imprimer()">Imprimer</button>
-      <button class="btn" onclick="nouveauReleve()">Nouveau</button>
       <span class="save-status" id="save-status">Non synchronise</span>
     </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzOevgScpaWbSfkcDiGkfHZIaayl2iT6huHH0ptbOvPsoPqbLoZtumYxr6h9roNjPU/exec';
 const CONDUCTEURS_DEMO = [
@@ -313,6 +313,7 @@ async function envoyerReleve(){
   const releve=lireFormulaire();
   const erreur=verifierReleve(releve);
   if(erreur){afficherToast(erreur);return;}
+  if(!confirmerEnvoi(releve)) return;
   const btn=document.getElementById('btn-envoyer');btn.disabled=true;btn.textContent='Envoi...';afficherStatut('Envoi en cours...');
   const payload={action:'saveReleveMensuel', conducteur:utilisateur, releve};
   try{
@@ -329,6 +330,23 @@ async function envoyerReleve(){
     afficherToast('Envoi impossible');
   }
   btn.disabled=false;btn.textContent='Envoyer';
+}
+function confirmerEnvoi(releve){
+  const chauffeur = `${utilisateur.prenom || ''} ${utilisateur.nom || ''}`.trim();
+  const lignes = [
+    "Confirmer l'envoi du releve suivant ?",
+    '',
+    `Chauffeur : ${chauffeur}`,
+    `Mois : ${releve.mois}`,
+    `Site : ${releve.site}`,
+    `Date : ${releve.dateReleve}`,
+    `Immatriculation : ${releve.immatriculation}`,
+    `Heure porteur : ${releve.heurePorteur || '-'}`,
+    `Heure auxiliaires : ${releve.heureAuxiliaires || '-'}`,
+    `Kilometrage : ${releve.kilometrage || '-'}`,
+    `Commentaire : ${releve.commentaire || '-'}`
+  ];
+  return confirm(lignes.join('\\n'));
 }
 async function chargerRelevesResponsable(){
   const zone=document.getElementById('responsable-contenu');
@@ -420,23 +438,49 @@ function nouveauReleve(garderMois=true){
   remplirFormulaire({mois:garderMois?mois:moisCourant(),dateReleve:dateCourante()});
   sauvegarderLocal();
 }
-function exportCSV(){
-  const d=lireFormulaire();
-  const lignes=[
-    ['RELEVE D HEURE MENSUEL HR OCCITANIE'],
-    ['Chauffeur',`${utilisateur.prenom} ${utilisateur.nom}`],
-    ['Mois',d.mois],
-    [],
-    ['Site','Date','Immatriculation','Heure porteur','Heure auxiliaires','Kilometrages','Commentaire'],
-    [d.site,d.dateReleve,d.immatriculation,d.heurePorteur,d.heureAuxiliaires,d.kilometrage,d.commentaire]
+function lignesExportResponsable(){
+  return [
+    ['Mois','Immatriculation','Site','Date releve','Chauffeur','Heure porteur','Heure auxiliaires','Kilometrage','Commentaire','Envoye le'],
+    ...relevesResponsable.map(r=>[
+      r.mois || '',
+      r.immatriculation || '',
+      r.site || '',
+      r.dateReleve || '',
+      `${r.prenom || ''} ${r.nom || ''}`.trim(),
+      r.heurePorteur || '',
+      r.heureAuxiliaires || '',
+      r.kilometrage || '',
+      r.commentaire || '',
+      r.timestamp || ''
+    ])
   ];
+}
+function verifierExportResponsable(){
+  if(!relevesResponsable.length){afficherToast('Aucun releve a exporter');return false;}
+  return true;
+}
+function exportResponsableCSV(){
+  if(!verifierExportResponsable()) return;
+  const lignes=lignesExportResponsable();
   const csv=lignes.map(r=>r.map(v=>`"${String(v ?? '').replaceAll('"','""')}"`).join(';')).join('\n');
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=`releve_engin_${d.mois || 'mois'}_${d.immatriculation || 'engin'}.csv`;a.click();
+  const mois=document.getElementById('mois-responsable').value || moisCourant();
+  const a=document.createElement('a');a.href=url;a.download=`releves_engins_${mois}.csv`;a.click();
   URL.revokeObjectURL(url);afficherToast('CSV exporte');
 }
-function imprimer(){window.print();}
+function exportResponsableExcel(){
+  if(!verifierExportResponsable()) return;
+  if(!window.XLSX){afficherToast('Export Excel indisponible');return;}
+  const lignes=lignesExportResponsable();
+  const ws=XLSX.utils.aoa_to_sheet(lignes);
+  ws['!cols']=[{wch:10},{wch:18},{wch:24},{wch:12},{wch:22},{wch:14},{wch:16},{wch:12},{wch:36},{wch:20}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Releves mensuels');
+  const mois=document.getElementById('mois-responsable').value || moisCourant();
+  XLSX.writeFile(wb,`releves_engins_${mois}.xlsx`);
+  afficherToast('Excel exporte');
+}
 function echapperHTML(val){return String(val ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
 
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));}
