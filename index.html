@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Heures Engins">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Releve Heures Engins - HR Occitanie</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --noir:#0f0f0f; --blanc:#f5f4f0; --gris-leger:#e8e7e3;
+    --gris-moyen:#c2c0b8; --gris-fonce:#6b6960;
+    --accent:#1a1a2e; --accent-light:#2d2d4a;
+    --rouge:#c0392b; --vert:#1a6b3c; --orange:#b56b12;
+    --bordure:1.5px solid #0f0f0f; --bordure-fine:1px solid #0f0f0f;
+    --font-mono:'IBM Plex Mono', monospace; --font-sans:'IBM Plex Sans', sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#d9d8d2;font-family:var(--font-sans);min-height:100vh;padding:24px 16px 60px;
+    background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(0,0,0,.04) 27px,rgba(0,0,0,.04) 28px),
+    repeating-linear-gradient(90deg,transparent,transparent 27px,rgba(0,0,0,.02) 27px,rgba(0,0,0,.02) 28px)}
+  #login-screen{display:flex;align-items:center;justify-content:center;min-height:80vh}
+  .login-card{background:var(--blanc);border:2px solid var(--noir);box-shadow:6px 6px 0 var(--noir);padding:40px 32px;max-width:380px;width:100%;text-align:center}
+  .login-titre{font-size:20px;font-weight:600;line-height:1.2;margin-bottom:6px}
+  .login-sous-titre{font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gris-fonce);margin-bottom:32px}
+  .pin-label{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gris-fonce);margin-bottom:8px;display:block;text-align:left}
+  .pin-input{font-family:var(--font-mono);font-size:28px;font-weight:600;letter-spacing:8px;text-align:center;border:2px solid var(--noir);background:white;color:var(--noir);padding:12px 16px;width:100%;outline:none;margin-bottom:16px}
+  .pin-input:focus,.field:focus,.cell-input:focus,.input-nb:focus,select:focus{background:#ffeaa7}
+  .login-erreur{font-family:var(--font-mono);font-size:11px;color:var(--rouge);margin-bottom:12px;min-height:16px}
+  #app-screen{display:none}
+  .document{max-width:1120px;margin:0 auto;background:var(--blanc);border:2px solid var(--noir);box-shadow:6px 6px 0 var(--noir)}
+  .user-bar{background:var(--accent);color:var(--blanc);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-family:var(--font-mono);font-size:11px}
+  .user-bar-info{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.user-bar-nom{font-weight:600;font-size:13px}.user-bar-role{background:rgba(255,255,255,.15);padding:3px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase}
+  .btn-deconnexion{font-family:var(--font-mono);font-size:11px;font-weight:600;background:var(--rouge);border:2px solid #fff;color:#fff;padding:7px 14px;cursor:pointer;letter-spacing:.5px;text-transform:uppercase}
+  .onglets-bar{background:var(--gris-leger);border-bottom:var(--bordure);display:flex;gap:0;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 16px}
+  .onglet{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:10px 16px;border:none;background:transparent;color:var(--gris-fonce);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+  .onglet.actif{color:var(--accent);border-bottom-color:var(--accent)}
+  .entete{padding:20px 24px 16px;border-bottom:var(--bordure);display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  .titre-doc{font-size:22px;font-weight:600;letter-spacing:-.5px;color:var(--noir);line-height:1.1}
+  .periode-zone{display:flex;gap:24px;align-items:center;flex-wrap:wrap}.label{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gris-fonce);margin-bottom:6px}
+  .field{font-family:var(--font-sans);font-size:13px;font-weight:500;border:none;border-bottom:1px solid var(--gris-moyen);background:transparent;color:var(--noir);padding:3px 4px;outline:none;width:100%}
+  .date-input{font-family:var(--font-mono);font-size:14px;border:none;border-bottom:2px solid var(--noir);background:transparent;color:var(--noir);padding:2px 4px;width:136px;outline:none;text-align:center}
+  .btn-small{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;background:var(--blanc);border:1.5px solid var(--noir);color:var(--noir);padding:7px 10px;cursor:pointer;box-shadow:2px 2px 0 var(--noir)}
+  .identite{display:grid;grid-template-columns:1.1fr 1.4fr 1fr;border-bottom:var(--bordure)}
+  .id-cell{padding:10px 14px;border-right:var(--bordure)}.id-cell:last-child{border-right:none}.id-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}.id-row:last-child{margin-bottom:0}.id-row-label{font-family:var(--font-mono);font-size:11px;font-weight:600;min-width:74px}
+  .visa-status{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;letter-spacing:.8px;text-transform:uppercase;padding:4px 10px;border:1.5px solid currentColor;color:var(--gris-fonce)}
+  .visa-status.valide{color:var(--vert)}.visa-date{font-family:var(--font-mono);font-size:10px;color:var(--gris-fonce);margin-top:6px;min-height:14px}.dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .verrou-banner{background:#fff3cd;border-top:2px solid #f0a500;padding:10px 20px;font-family:var(--font-mono);font-size:11px;color:#7d5a00;letter-spacing:.5px;display:none}
+  .tableau-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}table{width:100%;border-collapse:collapse;min-width:980px}
+  thead th{background:var(--accent);color:var(--blanc);font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;text-align:center;padding:10px 6px;border-right:1px solid rgba(255,255,255,.15);white-space:nowrap}
+  tbody tr{border-bottom:var(--bordure-fine)}tbody tr:nth-child(even){background:rgba(0,0,0,.018)}tbody tr:hover{background:#fef9e7}tbody td{border-right:var(--bordure-fine);padding:0;vertical-align:middle}
+  .cell-input,select.cell-input{font-family:var(--font-sans);font-size:13px;border:none;background:transparent;color:var(--noir);padding:7px 8px;width:100%;height:38px;outline:none;text-align:center}.left{text-align:left!important}
+  .input-nb{font-family:var(--font-mono);font-size:13px;font-weight:600;border:none;background:transparent;color:var(--noir);width:100%;height:38px;text-align:center;outline:none;padding:0 4px}.input-nb::-webkit-inner-spin-button,.input-nb::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+  .total-cell{font-family:var(--font-mono);font-size:13px;font-weight:600;text-align:center;padding:7px 6px;height:38px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.03);color:var(--vert)}
+  tfoot td{background:var(--gris-leger);border-right:var(--bordure-fine);border-top:var(--bordure);padding:8px 6px;font-family:var(--font-mono);font-size:11px;font-weight:600;text-align:center}.grand-total{font-size:15px;color:var(--vert);background:#e8f5ee}
+  .actions{padding:16px 20px;display:flex;gap:10px;flex-wrap:wrap;border-top:var(--bordure);background:var(--gris-leger);align-items:center}.save-status{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--gris-fonce)}
+  .btn{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:10px 18px;border:2px solid var(--noir);cursor:pointer;background:var(--blanc);color:var(--noir);box-shadow:2px 2px 0 var(--noir)}.btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+  .btn-primary{background:var(--accent);color:var(--blanc)}.btn-success{background:var(--vert);color:white;border-color:var(--vert)}.btn-danger{border-color:var(--rouge);color:var(--rouge)}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--noir);color:var(--blanc);font-family:var(--font-mono);font-size:12px;padding:12px 20px;border:2px solid var(--blanc);box-shadow:4px 4px 0 rgba(0,0,0,.3);opacity:0;transition:all .3s;z-index:1000;white-space:nowrap}.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .chargement{padding:40px;text-align:center;font-family:var(--font-mono);font-size:12px;color:var(--gris-fonce);letter-spacing:1px}
+  @media (max-width:720px){body{padding:14px 10px 48px}.titre-doc{font-size:17px}.identite{grid-template-columns:1fr}.id-cell{border-right:none;border-bottom:var(--bordure-fine)}.actions{padding:12px}.save-status{width:100%;margin-left:0}.btn{font-size:10px;padding:9px 12px}}
+  @media print{body{background:white;padding:0}#login-screen,.user-bar,.actions,.onglets-bar,.verrou-banner{display:none!important}.document{box-shadow:none;border:1px solid black}}
+</style>
+</head>
+<body>
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-titre">RELEVE HEURES ENGINS<br>HR OCCITANIE</div>
+    <div class="login-sous-titre">Connexion</div>
+    <label class="pin-label" for="pin-input">Votre code PIN</label>
+    <input class="pin-input" type="password" inputmode="numeric" id="pin-input" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter') seConnecter()">
+    <div class="login-erreur" id="login-erreur"></div>
+    <button class="btn btn-primary" id="btn-login" onclick="seConnecter()" style="width:100%;font-size:13px;padding:14px;">Se connecter</button>
+  </div>
+</div>
+
+<div id="app-screen">
+  <div class="document">
+    <div class="user-bar">
+      <div class="user-bar-info">
+        <span class="user-bar-nom" id="user-nom">-</span>
+        <span class="user-bar-role" id="user-role">-</span>
+      </div>
+      <button class="btn-deconnexion" onclick="seDeconnecter()">Deconnexion</button>
+    </div>
+    <div class="onglets-bar" id="onglets-bar" style="display:none;"></div>
+    <div class="verrou-banner" id="verrou-banner">Cette fiche a ete validee par le responsable - modification impossible.</div>
+    <div class="entete">
+      <div class="titre-doc">RELEVE DES HEURES<br>DES ENGINS</div>
+      <div class="periode-zone">
+        <div><div class="label">Semaine du</div><input type="date" class="date-input" id="date-debut" onchange="sauvegarder()"></div>
+        <div><div class="label">Au</div><input type="date" class="date-input" id="date-fin" onchange="sauvegarder()"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn-small" onclick="changerSemaine(-1)" title="Semaine precedente">←</button>
+          <button class="btn-small" onclick="allerSemaineCourante()">Semaine courante</button>
+          <button class="btn-small" onclick="changerSemaine(1)" title="Semaine suivante">→</button>
+        </div>
+      </div>
+    </div>
+    <div class="identite">
+      <div class="id-cell">
+        <div class="id-row"><span class="id-row-label">NOM :</span><input class="field" type="text" id="nom" readonly></div>
+        <div class="id-row"><span class="id-row-label">PRENOM :</span><input class="field" type="text" id="prenom" readonly></div>
+      </div>
+      <div class="id-cell">
+        <div class="id-row"><span class="id-row-label">ENGIN :</span><input class="field" type="text" id="engin-principal" placeholder="Code ou designation" oninput="sauvegarder()"></div>
+        <div class="id-row"><span class="id-row-label">CHANTIER :</span><input class="field" type="text" id="chantier-principal" placeholder="Chantier principal" oninput="sauvegarder()"></div>
+      </div>
+      <div class="id-cell">
+        <div class="label">Visa conducteur</div>
+        <div class="visa-status" id="visa-conducteur-status"><span class="dot"></span>En attente</div>
+        <div class="visa-date" id="date-visa-conducteur"></div>
+        <div class="label" style="margin-top:10px">Visa responsable</div>
+        <div class="visa-status" id="visa-responsable-status"><span class="dot"></span>En attente</div>
+        <div class="visa-date" id="date-visa-responsable"></div>
+      </div>
+    </div>
+    <div class="tableau-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:90px">Jour</th>
+            <th style="width:112px">Date</th>
+            <th style="width:170px">Engin</th>
+            <th style="width:180px">Chantier</th>
+            <th style="width:120px">Conducteur</th>
+            <th style="width:88px">Debut</th>
+            <th style="width:88px">Fin</th>
+            <th style="width:80px">Total</th>
+            <th style="width:88px">Gazole L</th>
+            <th>Observations</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="7" style="text-align:left;padding-left:12px;text-transform:uppercase">Totaux semaine</td>
+            <td class="grand-total" id="total-heures">0.0</td>
+            <td id="total-gazole">0</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="actions" id="actions-conducteur">
+      <button class="btn" onclick="ajouterLigne()">+ Ligne</button>
+      <button class="btn btn-success" id="btn-signer-action" onclick="signerConducteur()">Signer et envoyer</button>
+      <button class="btn btn-primary" onclick="exportExcel()">Excel</button>
+      <button class="btn btn-primary" onclick="exportCSV()">CSV</button>
+      <button class="btn" onclick="imprimerFeuille()">Imprimer</button>
+      <button class="btn btn-danger" onclick="reinitialiser()">Reinitialiser</button>
+      <span class="save-status" id="save-status">Non synchronise</span>
+    </div>
+    <div class="actions" id="actions-responsable" style="display:none">
+      <button class="btn btn-success" id="btn-valider-action" onclick="validerResponsable()">Valider la fiche</button>
+      <button class="btn btn-primary" onclick="exportExcel()">Excel</button>
+      <button class="btn btn-primary" onclick="exportCSV()">CSV</button>
+      <button class="btn" onclick="imprimerFeuille()">Imprimer</button>
+      <span class="save-status" id="save-status-resp">Lecture responsable</span>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const JOURS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche','Ferie','-'];
+const NB_LIGNES_DEFAUT = 12;
+const VERSION = 1;
+const API_URL = 'COLLER_ICI_URL_DEPLOIEMENT_APPS_SCRIPT';
+
+let utilisateur = null;
+let data = { version:VERSION, lignes:[], visas:{conducteur:false,responsable:false} };
+let listeConducteurs = [], conducteurActif = null, donneesActives = null;
+let feuilleVerrouillee = false;
+
+function echapperHTML(val){return String(val ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+function estAPIConfiguree(){return API_URL && !API_URL.includes('COLLER_ICI');}
+function afficherToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+function afficherStatut(msg,couleur='var(--gris-fonce)'){['save-status','save-status-resp'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent=msg;el.style.color=couleur;}});}
+function creerLigneVide(){return {jour:'',date:'',engin:'',chantier:'',conducteur:'',compteurDebut:'',compteurFin:'',gazole:'',observations:''};}
+function initLignes(){if(!data.lignes.length){for(let i=0;i<NB_LIGNES_DEFAUT;i++)data.lignes.push(creerLigneVide());}}
+
+function init(){
+  const saved=localStorage.getItem('engin_session');
+  if(saved){try{utilisateur=JSON.parse(saved);afficherAppli();return;}catch(e){localStorage.removeItem('engin_session');}}
+  afficherLogin();
+}
+function afficherLogin(){document.getElementById('login-screen').style.display='flex';document.getElementById('app-screen').style.display='none';}
+function afficherAppli(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-screen').style.display='block';
+  document.getElementById('user-nom').textContent=`${utilisateur.prenom || ''} ${utilisateur.nom || ''}`.trim();
+  document.getElementById('user-role').textContent=utilisateur.role || 'conducteur';
+  document.getElementById('nom').value=utilisateur.nom || '';
+  document.getElementById('prenom').value=utilisateur.prenom || '';
+  definirSemaine(getSemaineCourante());
+  if(utilisateur.role==='responsable') afficherVueResponsable(); else afficherVueConducteur();
+}
+async function seConnecter(){
+  const pin=document.getElementById('pin-input').value.trim();
+  const err=document.getElementById('login-erreur');
+  if(!pin){err.textContent='Code PIN requis.';return;}
+  if(!estAPIConfiguree()){
+    const demo={id:'demo',nom:'Demo',prenom:'Conducteur',role:pin==='9999'?'responsable':'conducteur'};
+    utilisateur=demo;localStorage.setItem('engin_session',JSON.stringify(utilisateur));afficherAppli();afficherToast('Mode demo local');return;
+  }
+  const btn=document.getElementById('btn-login');btn.disabled=true;err.textContent='';
+  try{
+    const res=await fetch(`${API_URL}?action=login&pin=${encodeURIComponent(pin)}`);
+    const json=await res.json();
+    if(json.success){utilisateur=json.user;localStorage.setItem('engin_session',JSON.stringify(utilisateur));afficherAppli();}
+    else err.textContent='PIN incorrect. Reessaie.';
+  }catch(e){err.textContent='Connexion impossible.';}
+  btn.disabled=false;
+}
+function seDeconnecter(){localStorage.removeItem('engin_session');utilisateur=null;data={version:VERSION,lignes:[],visas:{conducteur:false,responsable:false}};afficherLogin();}
+
+function afficherVueConducteur(){
+  document.getElementById('onglets-bar').style.display='none';
+  document.getElementById('actions-conducteur').style.display='flex';
+  document.getElementById('actions-responsable').style.display='none';
+  chargerDonneesLocales(document.getElementById('date-debut').value);
+  renderTableau();
+  verifierValidationResponsable();
+}
+async function afficherVueResponsable(){
+  document.getElementById('actions-conducteur').style.display='none';
+  document.getElementById('actions-responsable').style.display='flex';
+  const bar=document.getElementById('onglets-bar');bar.style.display='flex';bar.innerHTML='<div class="chargement">Chargement des conducteurs...</div>';
+  if(!estAPIConfiguree()){
+    listeConducteurs=[{id:'demo',nom:'Demo',prenom:'Conducteur',role:'conducteur'}];conducteurActif=listeConducteurs[0];afficherOnglets();chargerFeuille(conducteurActif);return;
+  }
+  try{
+    const res=await fetch(`${API_URL}?action=getConducteurs`);
+    const json=await res.json();
+    listeConducteurs=json.users || [];
+    conducteurActif=listeConducteurs[0] || null;
+    afficherOnglets();
+    if(conducteurActif) chargerFeuille(conducteurActif);
+  }catch(e){bar.innerHTML='<div class="chargement">Erreur de chargement</div>';}
+}
+function afficherOnglets(){
+  const bar=document.getElementById('onglets-bar');bar.innerHTML='';
+  listeConducteurs.forEach(u=>{
+    const btn=document.createElement('button');
+    btn.className='onglet'+(conducteurActif && conducteurActif.id===u.id?' actif':'');
+    btn.textContent=`${u.prenom} ${u.nom}`;
+    btn.onclick=()=>{conducteurActif=u;afficherOnglets();chargerFeuille(u);};
+    bar.appendChild(btn);
+  });
+}
+async function chargerFeuille(u){
+  document.getElementById('nom').value=u.nom || '';
+  document.getElementById('prenom').value=u.prenom || '';
+  document.getElementById('tbody').innerHTML='<tr><td colspan="10"><div class="chargement">Chargement...</div></td></tr>';
+  const semaine=document.getElementById('date-debut').value;
+  if(!estAPIConfiguree()){chargerDonneesLocales(semaine);donneesActives=data.lignes;renderTableauLecture(donneesActives);return;}
+  try{
+    const res=await fetch(`${API_URL}?action=getSemaine&idConducteur=${encodeURIComponent(u.id)}&semaine=${encodeURIComponent(semaine)}`);
+    const json=await res.json();
+    donneesActives=(json.lignes || []).map(ligneServeurVersLocale);
+    document.getElementById('engin-principal').value=json.meta?.engin || (donneesActives[0]?.engin || '');
+    document.getElementById('chantier-principal').value=json.meta?.chantier || (donneesActives[0]?.chantier || '');
+    setVisaStatus('conducteur', json.validation?.visaConducteur==='SIGNE', json.validation?.dateVisaConducteur);
+    setVisaStatus('responsable', !!json.validation?.visaResponsable, json.validation?.dateVisaResponsable);
+    document.getElementById('btn-valider-action').style.display=json.validation?.visaResponsable ? 'none' : 'inline-block';
+    renderTableauLecture(donneesActives);
+  }catch(e){document.getElementById('tbody').innerHTML='<tr><td colspan="10"><div class="chargement">Erreur de chargement</div></td></tr>';}
+}
+
+function renderTableau(){
+  initLignes();
+  const tbody=document.getElementById('tbody');tbody.innerHTML='';
+  data.lignes.forEach((l,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><select class="cell-input" onchange="updateLigne(${i},'jour',this.value)" ${feuilleVerrouillee?'disabled':''}>${JOURS.map(j=>`<option value="${j==='-'?'':j}" ${l.jour===j?'selected':''}>${j}</option>`).join('')}</select></td>
+      <td><input class="cell-input" type="date" value="${echapperHTML(l.date)}" onchange="updateLigne(${i},'date',this.value)" ${feuilleVerrouillee?'readonly':''}></td>
+      <td><input class="cell-input left" value="${echapperHTML(l.engin)}" placeholder="Pelle 8T" oninput="updateLigne(${i},'engin',this.value)" ${feuilleVerrouillee?'readonly':''}></td>
+      <td><input class="cell-input left" value="${echapperHTML(l.chantier)}" placeholder="Chantier" oninput="updateLigne(${i},'chantier',this.value)" ${feuilleVerrouillee?'readonly':''}></td>
+      <td><input class="cell-input left" value="${echapperHTML(l.conducteur)}" placeholder="${echapperHTML(utilisateur.prenom||'')}" oninput="updateLigne(${i},'conducteur',this.value)" ${feuilleVerrouillee?'readonly':''}></td>
+      <td><input class="input-nb" type="number" step="0.1" value="${echapperHTML(l.compteurDebut)}" oninput="updateLigne(${i},'compteurDebut',this.value)" ${feuilleVerrouillee?'readonly':''}></td>
+      <td><input class="input-nb" type="number" step="0.1" value="${echapperHTML(l.compteurFin)}" oninput="updateLigne(${i},'compteurFin',this.value)" ${feuilleVerrouillee?'readonly':''}></td>
+      <td><div class="total-cell">${formatNombre(calculerHeures(l))}</div></td>
+      <td><input class="input-nb" type="number" step="1" value="${echapperHTML(l.gazole)}" oninput="updateLigne(${i},'gazole',this.value)" ${feuilleVerrouillee?'readonly':''}></td>
+      <td><input class="cell-input left" value="${echapperHTML(l.observations)}" placeholder="Observation" oninput="updateLigne(${i},'observations',this.value)" ${feuilleVerrouillee?'readonly':''}></td>`;
+    tbody.appendChild(tr);
+  });
+  updateTotaux();majEtatVerrouillage();
+}
+function renderTableauLecture(lignes){
+  const tbody=document.getElementById('tbody');tbody.innerHTML='';
+  if(!lignes.length){tbody.innerHTML='<tr><td colspan="10"><div class="chargement">Aucun releve pour cette semaine</div></td></tr>';updateTotauxDepuis(lignes);return;}
+  lignes.forEach(l=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${echapperHTML(l.jour)}</td><td>${echapperHTML(l.date)}</td><td>${echapperHTML(l.engin)}</td><td>${echapperHTML(l.chantier)}</td><td>${echapperHTML(l.conducteur)}</td><td>${echapperHTML(l.compteurDebut)}</td><td>${echapperHTML(l.compteurFin)}</td><td><div class="total-cell">${formatNombre(calculerHeures(l))}</div></td><td>${echapperHTML(l.gazole)}</td><td>${echapperHTML(l.observations)}</td>`;
+    tbody.appendChild(tr);
+  });
+  updateTotauxDepuis(lignes);
+}
+function updateLigne(i,champ,val){
+  if(feuilleVerrouillee)return;
+  data.lignes[i][champ]=val;
+  if(champ==='engin' && !document.getElementById('engin-principal').value) document.getElementById('engin-principal').value=val;
+  if(champ==='chantier' && !document.getElementById('chantier-principal').value) document.getElementById('chantier-principal').value=val;
+  sauvegarder();
+  const tr=document.getElementById('tbody').rows[i];if(tr)tr.querySelector('.total-cell').textContent=formatNombre(calculerHeures(data.lignes[i]));
+  updateTotaux();
+}
+function calculerHeures(l){const d=parseFloat(String(l.compteurDebut).replace(',','.'));const f=parseFloat(String(l.compteurFin).replace(',','.'));if(isNaN(d)||isNaN(f))return 0;return Math.max(0,f-d);}
+function formatNombre(n){return (Math.round((n||0)*10)/10).toFixed(1);}
+function updateTotaux(){updateTotauxDepuis(data.lignes);}
+function updateTotauxDepuis(lignes){let h=0,g=0;lignes.forEach(l=>{h+=calculerHeures(l);g+=parseFloat(String(l.gazole).replace(',','.'))||0;});document.getElementById('total-heures').textContent=formatNombre(h);document.getElementById('total-gazole').textContent=Math.round(g);}
+function majEtatVerrouillage(){
+  document.getElementById('verrou-banner').style.display=feuilleVerrouillee?'block':'none';
+  ['btn-signer-action'].forEach(id=>{const b=document.getElementById(id);if(b)b.disabled=feuilleVerrouillee;});
+}
+function getCleReleve(semaine){return `heures_engins_${utilisateur.id}_${semaine}`;}
+function chargerDonneesLocales(semaine){
+  const saved=localStorage.getItem(getCleReleve(semaine));
+  data=saved?JSON.parse(saved):{version:VERSION,dateDebut:semaine,dateFin:document.getElementById('date-fin').value,lignes:[],visas:{conducteur:false,responsable:false}};
+  initLignes();
+  document.getElementById('engin-principal').value=data.enginPrincipal || '';
+  document.getElementById('chantier-principal').value=data.chantierPrincipal || '';
+  setVisaStatus('conducteur',data.visas.conducteur,data.visas.dateConducteur);
+  setVisaStatus('responsable',data.visas.responsable,data.visas.dateResponsable);
+}
+function sauvegarder(){
+  if(!utilisateur || feuilleVerrouillee)return;
+  data.dateDebut=document.getElementById('date-debut').value;
+  data.dateFin=document.getElementById('date-fin').value;
+  data.enginPrincipal=document.getElementById('engin-principal').value;
+  data.chantierPrincipal=document.getElementById('chantier-principal').value;
+  localStorage.setItem(getCleReleve(data.dateDebut),JSON.stringify(data));
+  afficherStatut('Sauvegarde locale');
+}
+async function envoyerGoogleSheets(){
+  const lignes=data.lignes.filter(l=>l.jour||l.date||l.engin||l.chantier||l.compteurDebut||l.compteurFin);
+  if(!lignes.length){afficherToast('Aucune ligne a envoyer');return false;}
+  if(!estAPIConfiguree()){afficherToast('Mode demo : donnees sauvegardees localement');return true;}
+  afficherStatut('Envoi en cours...');
+  const payload={action:'saveReleve',idConducteur:utilisateur.id,nom:utilisateur.nom,prenom:utilisateur.prenom,semaine:data.dateDebut,dateFin:data.dateFin,engin:data.enginPrincipal,chantier:data.chantierPrincipal,lignes};
+  try{
+    const res=await fetch(API_URL,{method:'POST',body:JSON.stringify(payload)});
+    const json=await res.json();
+    if(json.success){afficherStatut('Synchronise', 'var(--vert)');return true;}
+    afficherStatut('Erreur envoi','var(--rouge)');return false;
+  }catch(e){afficherStatut('Erreur reseau','var(--rouge)');return false;}
+}
+async function signerConducteur(){
+  if(feuilleVerrouillee){afficherToast('Fiche verrouillee');return;}
+  const ok=await envoyerGoogleSheets();if(!ok)return;
+  if(estAPIConfiguree()){
+    const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'signConducteur',idConducteur:utilisateur.id,semaine:data.dateDebut})});
+    const json=await res.json();if(!json.success){afficherToast('Signature impossible');return;}
+  }
+  const maintenant=new Date().toLocaleString('fr-FR');
+  data.visas.conducteur=true;data.visas.dateConducteur=maintenant;setVisaStatus('conducteur',true,maintenant);sauvegarder();afficherToast('Fiche signee et envoyee');
+}
+async function validerResponsable(){
+  if(!conducteurActif){afficherToast('Aucun conducteur selectionne');return;}
+  const semaine=document.getElementById('date-debut').value;
+  const btn=document.getElementById('btn-valider-action');btn.disabled=true;btn.textContent='...';
+  try{
+    if(estAPIConfiguree()){
+      const res=await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'validateResponsable',idConducteur:conducteurActif.id,semaine,responsable:`${utilisateur.prenom} ${utilisateur.nom}`.trim()})});
+      const json=await res.json();if(!json.success)throw new Error('validation');
+    }
+    const maintenant=new Date().toLocaleString('fr-FR');setVisaStatus('responsable',true,maintenant);btn.style.display='none';afficherToast('Fiche validee');
+  }catch(e){afficherToast('Validation impossible');btn.disabled=false;btn.textContent='Valider la fiche';}
+}
+async function verifierValidationResponsable(){
+  feuilleVerrouillee=false;
+  if(!estAPIConfiguree()){majEtatVerrouillage();return;}
+  const semaine=document.getElementById('date-debut').value;
+  try{
+    const res=await fetch(`${API_URL}?action=getSemaine&idConducteur=${encodeURIComponent(utilisateur.id)}&semaine=${encodeURIComponent(semaine)}`);
+    const json=await res.json();const v=json.validation || {};
+    setVisaStatus('conducteur',v.visaConducteur==='SIGNE',v.dateVisaConducteur);
+    setVisaStatus('responsable',!!v.visaResponsable,v.dateVisaResponsable);
+    feuilleVerrouillee=!!v.visaResponsable;majEtatVerrouillage();
+  }catch(e){majEtatVerrouillage();}
+}
+function setVisaStatus(type,val,dateStr){
+  const el=document.getElementById(`visa-${type}-status`);if(!el)return;
+  el.className='visa-status'+(val?' valide':'');el.innerHTML=`<span class="dot"></span>${val?'Signe':'En attente'}`;
+  document.getElementById(type==='conducteur'?'date-visa-conducteur':'date-visa-responsable').textContent=val?(dateStr || new Date().toLocaleString('fr-FR')):'';
+}
+function ajouterLigne(){data.lignes.push(creerLigneVide());sauvegarder();renderTableau();}
+function reinitialiser(){if(feuilleVerrouillee)return; if(confirm('Reinitialiser la fiche de la semaine ?')){data={version:VERSION,lignes:[],visas:{conducteur:false,responsable:false}};sauvegarder();renderTableau();}}
+function construireCSV(lignes,nom,prenom,debut,fin){
+  let csv='RELEVE HEURES ENGINS HR OCCITANIE\n';csv+=`Conducteur;${nom} ${prenom}\nSemaine;${debut};${fin}\n\n`;
+  csv+='JOUR;DATE;ENGIN;CHANTIER;CONDUCTEUR;COMPTEUR DEBUT;COMPTEUR FIN;TOTAL HEURES;GAZOLE L;OBSERVATIONS\n';
+  lignes.forEach(l=>{if(!l.jour&&!l.date&&!l.engin&&!l.chantier&&!l.compteurDebut&&!l.compteurFin)return;csv+=`${l.jour||''};${l.date||''};${l.engin||''};${l.chantier||''};${l.conducteur||''};${l.compteurDebut||''};${l.compteurFin||''};${formatNombre(calculerHeures(l))};${l.gazole||''};${l.observations||''}\n`;});
+  return csv;
+}
+function lignesExport(){return utilisateur.role==='responsable'?(donneesActives||[]):data.lignes;}
+function exportCSV(){
+  const nom=utilisateur.role==='responsable'?(conducteurActif?.nom||'conducteur'):utilisateur.nom;
+  const prenom=utilisateur.role==='responsable'?(conducteurActif?.prenom||''):utilisateur.prenom;
+  const debut=document.getElementById('date-debut').value||'',fin=document.getElementById('date-fin').value||'';
+  const blob=new Blob(['\uFEFF'+construireCSV(lignesExport(),nom,prenom,debut,fin)],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`heures_engins_${nom}_${prenom}_${debut}.csv`;a.click();URL.revokeObjectURL(url);afficherToast('CSV exporte');
+}
+function exportExcel(){
+  if(!window.XLSX){afficherToast('Bibliotheque Excel non chargee');return;}
+  const nom=utilisateur.role==='responsable'?(conducteurActif?.nom||'conducteur'):utilisateur.nom;
+  const prenom=utilisateur.role==='responsable'?(conducteurActif?.prenom||''):utilisateur.prenom;
+  const debut=document.getElementById('date-debut').value||'',fin=document.getElementById('date-fin').value||'';
+  const wsData=[['RELEVE HEURES ENGINS HR OCCITANIE'],[],['Conducteur',`${prenom} ${nom}`],['Semaine',debut,fin],[],['JOUR','DATE','ENGIN','CHANTIER','CONDUCTEUR','COMPTEUR DEBUT','COMPTEUR FIN','TOTAL HEURES','GAZOLE L','OBSERVATIONS']];
+  let totalH=0,totalG=0;
+  lignesExport().forEach(l=>{if(!l.jour&&!l.date&&!l.engin&&!l.chantier&&!l.compteurDebut&&!l.compteurFin)return;const h=calculerHeures(l);totalH+=h;totalG+=parseFloat(String(l.gazole).replace(',','.'))||0;wsData.push([l.jour||'',l.date||'',l.engin||'',l.chantier||'',l.conducteur||'',l.compteurDebut||'',l.compteurFin||'',h,l.gazole||'',l.observations||'']);});
+  wsData.push([]);wsData.push(['','','','','','','TOTAL',totalH,totalG,'']);
+  const ws=XLSX.utils.aoa_to_sheet(wsData);ws['!cols']=[{wch:12},{wch:12},{wch:20},{wch:24},{wch:18},{wch:14},{wch:14},{wch:12},{wch:10},{wch:30}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Releve engins');XLSX.writeFile(wb,`heures_engins_${nom}_${prenom}_${debut}.xlsx`);afficherToast('Excel exporte');
+}
+function imprimerFeuille(){window.print();}
+function getLundi(d){const day=d.getDay(),diff=(day===0)?-6:1-day;const l=new Date(d);l.setDate(d.getDate()+diff);return l;}
+function toISO(d){return d.toISOString().slice(0,10);}
+function getSemaineCourante(){return toISO(getLundi(new Date()));}
+function dateDepuisISO(iso){return new Date(`${iso}T00:00:00`);}
+function definirSemaine(debut){
+  const lundi=getLundi(dateDepuisISO(debut));const dimanche=new Date(lundi);dimanche.setDate(lundi.getDate()+6);
+  document.getElementById('date-debut').value=toISO(lundi);document.getElementById('date-fin').value=toISO(dimanche);
+}
+function changerSemaine(delta){
+  const base=document.getElementById('date-debut').value || getSemaineCourante();const d=dateDepuisISO(base);d.setDate(d.getDate()+delta*7);definirSemaine(toISO(d));
+  if(utilisateur.role==='responsable' && conducteurActif) chargerFeuille(conducteurActif); else afficherVueConducteur();
+}
+function allerSemaineCourante(){definirSemaine(getSemaineCourante());if(utilisateur.role==='responsable' && conducteurActif) chargerFeuille(conducteurActif); else afficherVueConducteur();}
+function ligneServeurVersLocale(l){return {jour:l.JOUR||'',date:l.DATE||'',engin:l.ENGIN||'',chantier:l.CHANTIER||'',conducteur:l.CONDUCTEUR||'',compteurDebut:l.COMPTEUR_DEBUT||'',compteurFin:l.COMPTEUR_FIN||'',gazole:l.GAZOLE_L||'',observations:l.OBSERVATIONS||''};}
+
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));}
+init();
+</script>
+</body>
+</html>

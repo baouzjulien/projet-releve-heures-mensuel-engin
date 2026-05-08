@@ -1,0 +1,9 @@
+node_modules/
+reference-pointage/
+assets/
+lib/
+
+.DS_Store
+Thumbs.db
+
+*.log
