@@ -188,6 +188,56 @@ function envoyerMailResponsable(row) {
   audit('EMAIL_RESPONSABLE', responsable, 'Email envoye a ' + email + ' pour releve ' + row.ID_RELEVE, null);
 }
 
+function envoyerEmailBienvenueResponsable() {
+  const responsable = rows(SHEETS.conducteurs)
+    .find(c => String(c.ROLE || '').toLowerCase() === 'responsable' && String(c.ACTIF || 'OUI').toUpperCase() !== 'NON');
+
+  if (!responsable) throw new Error('Aucun responsable actif trouve dans CONDUCTEURS');
+
+  const email = String(responsable.EMAIL || '').trim();
+  if (!email) throw new Error('Adresse e-mail responsable absente dans la colonne EMAIL');
+
+  const releves = rows(SHEETS.releves).slice(-10).reverse();
+  const lignes = releves.length
+    ? releves.map(r => [
+        '- ',
+        monthToKey(r.MOIS),
+        ' | ',
+        r.IMMATRICULATION || 'Sans immatriculation',
+        ' | ',
+        r.SITE || 'Sans site',
+        ' | ',
+        [r.PRENOM, r.NOM].filter(Boolean).join(' ') || 'Sans chauffeur'
+      ].join('')).join('\n')
+    : 'Aucun releve enregistre pour le moment.';
+
+  const urlApplication = 'https://baouzjulien.github.io/projet-releve-heures-mensuel-engin/';
+  const sujet = 'Acces au suivi mensuel des engins HR Occitanie';
+  const corps = [
+    'Bonjour David,',
+    '',
+    'L application de suivi mensuel des engins HR Occitanie est disponible.',
+    '',
+    'Lien d acces :',
+    urlApplication,
+    '',
+    'Tu peux te connecter avec ton code responsable pour consulter les releves par vehicule ou par chauffeur, puis exporter les donnees du mois en CSV ou Excel.',
+    '',
+    'Derniers releves enregistres :',
+    lignes,
+    '',
+    'Ce message est un premier envoi de presentation. Les prochains releves envoyes par les chauffeurs declencheront automatiquement une notification.'
+  ].join('\n');
+
+  MailApp.sendEmail(email, sujet, corps);
+  audit('EMAIL_BIENVENUE_RESPONSABLE', {
+    id: String(responsable.ID || ''),
+    nom: String(responsable.NOM || ''),
+    prenom: String(responsable.PRENOM || ''),
+    role: String(responsable.ROLE || 'responsable').toLowerCase()
+  }, 'Email de bienvenue envoye a ' + email, null);
+}
+
 function audit(action, user, details, event) {
   try {
     const headers = [
