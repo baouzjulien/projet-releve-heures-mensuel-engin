@@ -7,13 +7,14 @@ const releves = workbook.worksheets.add('RELEVES_MENSUELS');
 const audit = workbook.worksheets.add('AUDIT');
 
 conducteurs.getRange('A1:G1').values = [['ID', 'NOM', 'PRENOM', 'PIN', 'ROLE', 'ACTIF', 'EMAIL']];
-conducteurs.getRange('A2:G7').values = [
+conducteurs.getRange('A2:G8').values = [
   [1, 'BAOUZ', 'JULIEN', 3960, 'employe', 'OUI', ''],
   [2, 'LANGE', 'DAVID', 5678, 'responsable', 'OUI', ''],
   [3, 'BOUCHEROT', 'REMY', 5412, 'employe', 'OUI', ''],
   [4, 'NOM EMPLOYE 3', 'YVAN', 6875, 'employe', 'OUI', ''],
   [5, 'NOM EMPLOYE 4', 'YACIN', 5143, 'employe', 'OUI', ''],
-  [6, 'PHAN', 'HUGO', 8732, 'employe', 'OUI', '']
+  [6, 'PHAN', 'HUGO', 8732, 'employe', 'OUI', ''],
+  [7, 'FOURNIER', 'GUILLAUME', '', 'responsable', 'OUI', '']
 ];
 
 releves.getRange('A1:N1').values = [[

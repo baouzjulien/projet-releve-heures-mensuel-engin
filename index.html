@@ -26,7 +26,7 @@
     repeating-linear-gradient(90deg,transparent,transparent 27px,rgba(0,0,0,.02) 27px,rgba(0,0,0,.02) 28px)}
   #login-screen{display:flex;align-items:center;justify-content:center;min-height:80vh}
   .login-card{background:var(--blanc);border:2px solid var(--noir);box-shadow:6px 6px 0 var(--noir);padding:36px 30px;max-width:380px;width:100%;text-align:center}
-  .login-logo{width:96px;height:96px;object-fit:contain;margin:0 auto 18px;display:block}
+  .login-logo{width:88px;height:88px;object-fit:contain;margin:0 auto 18px;display:block}
   .login-titre{font-size:20px;font-weight:600;line-height:1.2;margin-bottom:6px}
   .login-sous-titre{font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gris-fonce);margin-bottom:28px}
   .pin-label,.label{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gris-fonce);margin-bottom:7px;display:block}
@@ -39,7 +39,7 @@
   .user-bar-info{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.user-bar-nom{font-weight:600;font-size:13px}.user-bar-role{background:rgba(255,255,255,.15);padding:3px 10px;font-size:10px;letter-spacing:1px;text-transform:uppercase}
   .btn-deconnexion{font-family:var(--font-mono);font-size:11px;font-weight:600;background:var(--rouge);border:2px solid #fff;color:#fff;padding:7px 12px;cursor:pointer;letter-spacing:.5px;text-transform:uppercase}
   .entete{padding:20px 22px 16px;border-bottom:var(--bordure);display:flex;align-items:center;gap:18px}
-  .app-logo{width:68px;height:68px;object-fit:contain;flex:0 0 auto}
+  .app-logo{width:60px;height:60px;object-fit:contain;flex:0 0 auto}
   .titre-doc{font-size:24px;font-weight:600;letter-spacing:-.3px;color:var(--noir);line-height:1.12}
   .sous-titre{font-family:var(--font-mono);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--gris-fonce);margin-top:6px}
   .form-zone{padding:20px 22px 10px}
@@ -71,7 +71,7 @@
   .empty-state{border:var(--bordure-fine);padding:18px;background:rgba(255,255,255,.45);font-family:var(--font-mono);font-size:12px;color:var(--gris-fonce)}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--noir);color:var(--blanc);font-family:var(--font-mono);font-size:12px;padding:12px 20px;border:2px solid var(--blanc);box-shadow:4px 4px 0 rgba(0,0,0,.3);opacity:0;transition:all .3s;z-index:1000;white-space:nowrap}.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
   @media (max-width:640px){
-    body{padding:14px 10px 48px}.entete{padding:16px;align-items:flex-start}.app-logo{width:58px;height:58px}.titre-doc{font-size:20px}
+    body{padding:14px 10px 48px}.entete{padding:16px;align-items:flex-start}.app-logo{width:52px;height:52px}.titre-doc{font-size:20px}
     .form-zone{padding:16px}.identite,.form-grid,.releve-card{grid-template-columns:1fr}.actions{padding:12px}.save-status{width:100%;margin-left:0}.btn{font-size:10px;padding:10px 12px}
   }
   @media print{body{background:white;padding:0}#login-screen,.user-bar,.actions{display:none!important}.document{box-shadow:none;border:1px solid black}}
@@ -199,7 +199,8 @@ const CONDUCTEURS_DEMO = [
   { id:'3', nom:'BOUCHEROT', prenom:'REMY', pin:'5412', role:'employe' },
   { id:'4', nom:'NOM EMPLOYE 3', prenom:'YVAN', pin:'6875', role:'employe' },
   { id:'5', nom:'NOM EMPLOYE 4', prenom:'YACIN', pin:'5143', role:'employe' },
-  { id:'6', nom:'PHAN', prenom:'HUGO', pin:'8732', role:'employe' }
+  { id:'6', nom:'PHAN', prenom:'HUGO', pin:'8732', role:'employe' },
+  { id:'7', nom:'FOURNIER', prenom:'GUILLAUME', pin:'', role:'responsable' }
 ];
 
 let utilisateur = null;

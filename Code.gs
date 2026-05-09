@@ -158,15 +158,19 @@ function saveReleveMensuel(payload, event) {
 }
 
 function envoyerMailResponsable(row) {
-  const responsable = rows(SHEETS.conducteurs)
-    .find(c => String(c.ROLE || '').toLowerCase() === 'responsable' && String(c.ACTIF || 'OUI').toUpperCase() !== 'NON');
+  const responsables = rows(SHEETS.conducteurs)
+    .filter(c => String(c.ROLE || '').toLowerCase() === 'responsable' && String(c.ACTIF || 'OUI').toUpperCase() !== 'NON');
 
-  const email = responsable && String(responsable.EMAIL || '').trim();
-  if (!email) {
-    audit('EMAIL_NON_ENVOYE', responsable || null, 'Adresse e-mail responsable absente', null);
+  const destinataires = responsables
+    .map(r => ({ responsable: r, email: String(r.EMAIL || '').trim() }))
+    .filter(r => r.email);
+
+  if (!destinataires.length) {
+    audit('EMAIL_NON_ENVOYE', null, 'Aucune adresse e-mail responsable renseignee', null);
     return;
   }
 
+  const urlApplication = 'https://baouzjulien.github.io/projet-releve-heures-mensuel-engin/';
   const sujet = `Nouveau releve mensuel engin - ${row.IMMATRICULATION} - ${row.MOIS}`;
   const corps = [
     'Un nouveau releve mensuel engin a ete envoye.',
@@ -181,11 +185,21 @@ function envoyerMailResponsable(row) {
     `Kilometrage : ${row.KILOMETRAGE}`,
     `Commentaire : ${row.COMMENTAIRE || '-'}`,
     '',
+    'Lien vers l application :',
+    urlApplication,
+    '',
     `ID releve : ${row.ID_RELEVE}`
   ].join('\n');
 
-  MailApp.sendEmail(email, sujet, corps);
-  audit('EMAIL_RESPONSABLE', responsable, 'Email envoye a ' + email + ' pour releve ' + row.ID_RELEVE, null);
+  destinataires.forEach(({ responsable, email }) => {
+    MailApp.sendEmail(email, sujet, corps);
+    audit('EMAIL_RESPONSABLE', {
+      id: String(responsable.ID || ''),
+      nom: String(responsable.NOM || ''),
+      prenom: String(responsable.PRENOM || ''),
+      role: String(responsable.ROLE || 'responsable').toLowerCase()
+    }, 'Email envoye a ' + email + ' pour releve ' + row.ID_RELEVE, null);
+  });
 }
 
 function envoyerEmailBienvenueResponsable() {
