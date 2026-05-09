@@ -218,6 +218,32 @@ function afficherToast(msg){const t=document.getElementById('toast');t.textConte
 function afficherStatut(msg,couleur='var(--gris-fonce)'){const el=document.getElementById('save-status');el.textContent=msg;el.style.color=couleur;}
 function moisCourant(){return new Date().toISOString().slice(0,7);}
 function dateCourante(){return new Date().toISOString().slice(0,10);}
+function formaterDateFr(valeur){
+  if(!valeur) return '';
+  const texte=String(valeur);
+  const match=texte.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const date=match ? new Date(Number(match[1]), Number(match[2])-1, Number(match[3])) : new Date(texte);
+  if(Number.isNaN(date.getTime())) return texte;
+  return new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'long',year:'numeric'}).format(date);
+}
+function formaterMoisFr(valeur){
+  if(!valeur) return '';
+  const texte=String(valeur);
+  const match=texte.match(/^(\d{4})-(\d{2})/);
+  if(!match) return texte;
+  const date=new Date(Number(match[1]), Number(match[2])-1, 1);
+  return new Intl.DateTimeFormat('fr-FR',{month:'long',year:'numeric'}).format(date);
+}
+function formaterDateHeureFr(valeur){
+  if(!valeur) return '';
+  const texte=String(valeur);
+  const normalise=texte.match(/^\d{4}-\d{2}-\d{2} /) ? texte.replace(' ','T') : texte;
+  const date=new Date(normalise);
+  if(Number.isNaN(date.getTime())) return texte;
+  const jour=new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'long',year:'numeric'}).format(date);
+  const heure=new Intl.DateTimeFormat('fr-FR',{hour:'numeric',minute:'2-digit'}).format(date).replace(':',' h ');
+  return `${jour} à ${heure}`;
+}
 function cleBrouillon(){return utilisateur ? `releve_mensuel_brouillon_${utilisateur.id}` : 'releve_mensuel_brouillon';}
 function cleHistorique(){return utilisateur ? `releve_mensuel_historique_${utilisateur.id}` : 'releve_mensuel_historique';}
 
@@ -339,12 +365,12 @@ async function envoyerReleve(){
 function confirmerEnvoi(releve){
   const chauffeur = `${utilisateur.prenom || ''} ${utilisateur.nom || ''}`.trim();
   const lignes = [
-    "Confirmer l'envoi du releve suivant ?",
+    "Confirmer l'envoi du relevé suivant ?",
     '',
     `Chauffeur : ${chauffeur}`,
-    `Mois : ${releve.mois}`,
+    `Mois : ${formaterMoisFr(releve.mois)}`,
     `Site : ${releve.site}`,
-    `Date : ${releve.dateReleve}`,
+    `Date : ${formaterDateFr(releve.dateReleve)}`,
     `Immatriculation : ${releve.immatriculation}`,
     `Heure porteur : ${releve.heurePorteur || '-'}`,
     `Heure auxiliaires : ${releve.heureAuxiliaires || '-'}`,
@@ -406,9 +432,9 @@ function renderResponsable(releves){
       ${items.map(r=>`
         <div class="releve-card">
           <div><strong>Chauffeur</strong>${echapperHTML(`${r.prenom || ''} ${r.nom || ''}`.trim())}</div>
-          <div><strong>Envoye le</strong>${echapperHTML(r.timestamp)}</div>
+          <div><strong>Envoyé le</strong>${echapperHTML(formaterDateHeureFr(r.timestamp))}</div>
           <div><strong>Site</strong>${echapperHTML(r.site)}</div>
-          <div><strong>Date releve</strong>${echapperHTML(r.dateReleve)}</div>
+          <div><strong>Date relevé</strong>${echapperHTML(formaterDateFr(r.dateReleve))}</div>
           <div><strong>Heure porteur</strong>${echapperHTML(r.heurePorteur)}</div>
           <div><strong>Heure auxiliaires</strong>${echapperHTML(r.heureAuxiliaires)}</div>
           <div><strong>Kilometrage</strong>${echapperHTML(r.kilometrage)}</div>
@@ -426,7 +452,7 @@ function changerGroupementResponsable(mode){
 }
 function enregistrerHistorique(releve){
   const historique=JSON.parse(localStorage.getItem(cleHistorique()) || '[]');
-  historique.unshift({...releve, envoyeLe:new Date().toLocaleString('fr-FR')});
+  historique.unshift({...releve, envoyeLe:formaterDateHeureFr(new Date().toISOString())});
   localStorage.setItem(cleHistorique(),JSON.stringify(historique.slice(0,5)));
   afficherHistorique();
 }
@@ -436,7 +462,7 @@ function afficherHistorique(){
   const list=document.getElementById('historique');
   if(!historique.length){zone.style.display='none';return;}
   zone.style.display='block';
-  list.innerHTML=historique.map(h=>`<div class="historique-item"><span>${echapperHTML(h.mois)} - ${echapperHTML(h.immatriculation)} - ${echapperHTML(h.site)}</span><span class="historique-date">${echapperHTML(h.envoyeLe)}</span></div>`).join('');
+  list.innerHTML=historique.map(h=>`<div class="historique-item"><span>${echapperHTML(formaterMoisFr(h.mois))} - ${echapperHTML(h.immatriculation)} - ${echapperHTML(h.site)}</span><span class="historique-date">${echapperHTML(h.envoyeLe)}</span></div>`).join('');
 }
 function nouveauReleve(garderMois=true){
   const mois=document.getElementById('mois').value || moisCourant();
@@ -445,18 +471,18 @@ function nouveauReleve(garderMois=true){
 }
 function lignesExportResponsable(){
   return [
-    ['Mois','Immatriculation','Site','Date releve','Chauffeur','Heure porteur','Heure auxiliaires','Kilometrage','Commentaire','Envoye le'],
+    ['Mois','Immatriculation','Site','Date relevé','Chauffeur','Heure porteur','Heure auxiliaires','Kilometrage','Commentaire','Envoyé le'],
     ...relevesResponsable.map(r=>[
-      r.mois || '',
+      formaterMoisFr(r.mois),
       r.immatriculation || '',
       r.site || '',
-      r.dateReleve || '',
+      formaterDateFr(r.dateReleve),
       `${r.prenom || ''} ${r.nom || ''}`.trim(),
       r.heurePorteur || '',
       r.heureAuxiliaires || '',
       r.kilometrage || '',
       r.commentaire || '',
-      r.timestamp || ''
+      formaterDateHeureFr(r.timestamp)
     ])
   ];
 }

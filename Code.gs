@@ -171,14 +171,15 @@ function envoyerMailResponsable(row) {
   }
 
   const urlApplication = 'https://baouzjulien.github.io/projet-releve-heures-mensuel-engin/';
-  const sujet = `Nouveau releve mensuel engin - ${row.IMMATRICULATION} - ${row.MOIS}`;
+  const sujet = `Nouveau relevé mensuel engin - ${row.IMMATRICULATION} - ${monthToFrenchText(row.MOIS)}`;
   const corps = [
-    'Un nouveau releve mensuel engin a ete envoye.',
+    'Un nouveau relevé mensuel engin a été envoyé.',
     '',
+    `Envoyé le : ${dateTimeToFrenchText(row.TIMESTAMP)}`,
     `Chauffeur : ${row.PRENOM} ${row.NOM}`,
-    `Mois : ${row.MOIS}`,
+    `Mois : ${monthToFrenchText(row.MOIS)}`,
     `Site : ${row.SITE}`,
-    `Date : ${row.DATE_RELEVE}`,
+    `Date : ${dateToFrenchText(row.DATE_RELEVE)}`,
     `Immatriculation : ${row.IMMATRICULATION}`,
     `Heure porteur : ${row.HEURE_PORTEUR}`,
     `Heure auxiliaires : ${row.HEURE_AUXILIAIRES}`,
@@ -324,4 +325,52 @@ function dateToText(value) {
     return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
   }
   return String(value);
+}
+
+function dateToFrenchText(value) {
+  if (!value) return '';
+  const date = dateFromIsoText(value);
+  if (!date) return String(value);
+  return date.getDate() + ' ' + frenchMonthName(date.getMonth()) + ' ' + date.getFullYear();
+}
+
+function monthToFrenchText(value) {
+  if (!value) return '';
+  const text = String(value);
+  const match = text.match(/^(\d{4})-(\d{2})/);
+  if (!match) return text;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+  return frenchMonthName(date.getMonth()) + ' ' + date.getFullYear();
+}
+
+function dateTimeToFrenchText(value) {
+  if (!value) return '';
+  const date = Object.prototype.toString.call(value) === '[object Date]' ? value : new Date(String(value).replace(' ', 'T'));
+  if (isNaN(date.getTime())) return String(value);
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return dateToFrenchText(date) + ' à ' + date.getHours() + ' h ' + minutes;
+}
+
+function frenchMonthName(monthIndex) {
+  return [
+    'janvier',
+    'février',
+    'mars',
+    'avril',
+    'mai',
+    'juin',
+    'juillet',
+    'août',
+    'septembre',
+    'octobre',
+    'novembre',
+    'décembre'
+  ][monthIndex] || '';
+}
+
+function dateFromIsoText(value) {
+  if (Object.prototype.toString.call(value) === '[object Date]') return value;
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
 }
