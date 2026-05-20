@@ -1,7 +1,9 @@
-const CACHE_NAME = 'releve-heures-engins-hr-v10';
+const CACHE_NAME = 'releve-heures-engins-hr-v11';
 const FILES = [
   './index.html',
   './manifest.json',
+  './favicon-32.png',
+  './favicon-48.png',
   './assets/logo-suivi-transparent.png',
   './icon-192.png',
   './icon-512.png'
