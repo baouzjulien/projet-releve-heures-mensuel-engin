@@ -287,16 +287,6 @@ function init(){
   afficherLogin();
 }
 function afficherLogin(){document.getElementById('login-screen').style.display='flex';document.getElementById('app-screen').style.display='none';}
-function finaliserConnexion(user){
-  utilisateur=user;
-  localStorage.setItem('releve_engins_session',JSON.stringify(utilisateur));
-  try{
-    afficherAppli();
-  }catch(e){
-    localStorage.removeItem(cleBrouillon());
-    afficherAppli();
-  }
-}
 function afficherAppli(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-screen').style.display='block';
@@ -329,14 +319,14 @@ async function seConnecter(){
   const btn=document.getElementById('btn-login');btn.disabled=true;err.textContent='';
   if(!estAPIConfiguree()){
     const user=CONDUCTEURS_DEMO.find(u=>u.pin===pin);
-    if(user){finaliserConnexion({id:user.id,nom:user.nom,prenom:user.prenom,role:user.role});afficherToast('Mode local');}
+    if(user){utilisateur={id:user.id,nom:user.nom,prenom:user.prenom,role:user.role};localStorage.setItem('releve_engins_session',JSON.stringify(utilisateur));afficherAppli();afficherToast('Mode local');}
     else err.textContent='PIN incorrect.';
     btn.disabled=false;return;
   }
   try{
     const res=await fetch(`${API_URL}?action=login&pin=${encodeURIComponent(pin)}&userAgent=${encodeURIComponent(navigator.userAgent)}`);
     const json=await res.json();
-    if(json.success){finaliserConnexion(json.user);}
+    if(json.success){utilisateur=json.user;localStorage.setItem('releve_engins_session',JSON.stringify(utilisateur));afficherAppli();}
     else err.textContent='PIN incorrect.';
   }catch(e){err.textContent='Connexion impossible.';}
   btn.disabled=false;
@@ -510,6 +500,23 @@ async function envoyerReleve(){
 function confirmerEnvoi(releve){
   const chauffeur = `${utilisateur.prenom || ''} ${utilisateur.nom || ''}`.trim();
   const lignes = [
+    "Confirmer l'envoi du relevé suivant ?",
+    '',
+    `Chauffeur : ${chauffeur}`,
+    `Mois : ${formaterMoisFr(releve.mois)}`,
+    `Site : ${releve.site}`,
+    `Date : ${formaterDateFr(releve.dateReleve)}`,
+    `Immatriculation : ${releve.immatriculation}`,
+    `Heure porteur : ${releve.heurePorteur || '-'}`,
+    `Heure auxiliaires : ${releve.heureAuxiliaires || '-'}`,
+    `Kilometrage : ${releve.kilometrage || '-'}`,
+    `Commentaire : ${releve.commentaire || '-'}`
+  ];
+  return confirm(lignes.join('\\n'));
+}
+function confirmerEnvoi(releve){
+  const chauffeur = `${utilisateur.prenom || ''} ${utilisateur.nom || ''}`.trim();
+  const lignes = [
     releve.idReleve ? "Confirmer la mise a jour du releve suivant ?" : "Confirmer l'envoi du releve suivant ?",
     '',
     `Chauffeur : ${chauffeur}`,
@@ -572,6 +579,42 @@ async function validerReleveResponsable(idReleve){
   }catch(e){
     afficherToast('Validation impossible');
   }
+}
+function renderResponsable(releves){
+  relevesResponsable = releves;
+  const zone=document.getElementById('responsable-contenu');
+  if(!releves.length){
+    zone.className='empty-state';
+    zone.textContent='Aucun releve pour ce mois.';
+    return;
+  }
+  const groupes = releves.reduce((acc,r)=>{
+    const key = groupementResponsable === 'chauffeur'
+      ? (`${r.prenom || ''} ${r.nom || ''}`.trim() || 'Sans chauffeur')
+      : ((r.immatriculation || 'Sans immatriculation').toUpperCase());
+    if(!acc[key]) acc[key]=[];
+    acc[key].push(r);
+    return acc;
+  },{});
+  document.getElementById('responsable-titre').textContent = groupementResponsable === 'chauffeur' ? 'Releves par chauffeur' : 'Releves par vehicule';
+  zone.className='';
+  zone.innerHTML=Object.entries(groupes).sort(([a],[b])=>a.localeCompare(b)).map(([immat,items])=>`
+    <div class="vehicule-card">
+      <div class="vehicule-head">${echapperHTML(immat)} - ${items.length} releve${items.length>1?'s':''}</div>
+      ${items.map(r=>`
+        <div class="releve-card">
+          <div><strong>Chauffeur</strong>${echapperHTML(`${r.prenom || ''} ${r.nom || ''}`.trim())}</div>
+          <div><strong>Envoyé le</strong>${echapperHTML(formaterDateHeureFr(r.timestamp))}</div>
+          <div><strong>Site</strong>${echapperHTML(r.site)}</div>
+          <div><strong>Date relevé</strong>${echapperHTML(formaterDateFr(r.dateReleve))}</div>
+          <div><strong>Heure porteur</strong>${echapperHTML(r.heurePorteur)}</div>
+          <div><strong>Heure auxiliaires</strong>${echapperHTML(r.heureAuxiliaires)}</div>
+          <div><strong>Kilometrage</strong>${echapperHTML(r.kilometrage)}</div>
+          <div><strong>Commentaire</strong>${echapperHTML(r.commentaire || '-')}</div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
 }
 function renderResponsable(releves){
   relevesResponsable = releves;
