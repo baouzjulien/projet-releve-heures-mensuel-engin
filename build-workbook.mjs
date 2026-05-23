@@ -33,6 +33,15 @@ releves.getRange('A1:N1').values = [[
   'KILOMETRAGE',
   'COMMENTAIRE'
 ]];
+releves.getRange('O1:U1').values = [[
+  'ID_LIGNE',
+  'NUM_LIGNE',
+  'STATUT',
+  'DATE_VALIDATION',
+  'ID_RESPONSABLE',
+  'NOM_RESPONSABLE',
+  'PRENOM_RESPONSABLE'
+]];
 
 audit.getRange('A1:I1').values = [[
   'ID_AUDIT',
@@ -52,7 +61,7 @@ for (const sheet of [conducteurs, releves, audit]) {
 }
 
 conducteurs.getRange('A:G').columnWidthPx = 150;
-releves.getRange('A:N').columnWidthPx = 165;
+releves.getRange('A:U').columnWidthPx = 165;
 audit.getRange('A:I').columnWidthPx = 170;
 
 await fs.mkdir('outputs', { recursive: true });
