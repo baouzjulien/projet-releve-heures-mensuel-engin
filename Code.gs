@@ -4,30 +4,6 @@ const SHEETS = {
   audit: 'AUDIT'
 };
 
-const RELEVE_HEADERS = [
-  'ID_RELEVE',
-  'TIMESTAMP',
-  'MOIS',
-  'ID_CONDUCTEUR',
-  'NOM',
-  'PRENOM',
-  'ROLE',
-  'SITE',
-  'DATE_RELEVE',
-  'IMMATRICULATION',
-  'HEURE_PORTEUR',
-  'HEURE_AUXILIAIRES',
-  'KILOMETRAGE',
-  'COMMENTAIRE',
-  'ID_LIGNE',
-  'NUM_LIGNE',
-  'STATUT',
-  'DATE_VALIDATION',
-  'ID_RESPONSABLE',
-  'NOM_RESPONSABLE',
-  'PRENOM_RESPONSABLE'
-];
-
 function doGet(e) {
   const action = (e.parameter.action || '').trim();
   try {
@@ -44,7 +20,6 @@ function doPost(e) {
   try {
     const payload = JSON.parse(e.postData.contents || '{}');
     if (payload.action === 'saveReleveMensuel') return json(saveReleveMensuel(payload, e));
-    if (payload.action === 'validerReleveMensuel') return json(validerReleveMensuel(payload, e));
     return json({ success: false, error: 'Action inconnue' });
   } catch (err) {
     audit('ERREUR_POST', null, String(err), e);
@@ -72,50 +47,6 @@ function rows(name) {
   return values.slice(1)
     .filter(r => r.some(c => c !== '' && c !== null))
     .map(r => Object.fromEntries(headers.map((h, i) => [h, r[i]])));
-}
-
-function ensureReleveHeaders() {
-  const sh = sheet(SHEETS.releves);
-  const current = sh.getLastRow() ? sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(String) : [];
-  const missing = RELEVE_HEADERS.filter(h => !current.includes(h));
-  if (!current.length || missing.length) {
-    sh.getRange(1, 1, 1, RELEVE_HEADERS.length).setValues([RELEVE_HEADERS]);
-  }
-  return sh;
-}
-
-function findRowsByReleveId(sh, idReleve) {
-  const values = sh.getDataRange().getValues();
-  if (values.length < 2) return [];
-  const headers = values[0].map(String);
-  return values.slice(1)
-    .map((r, i) => ({
-      rowIndex: i + 2,
-      row: Object.fromEntries(headers.map((h, col) => [h, r[col]]))
-    }))
-    .filter(item => String(item.row.ID_RELEVE || '') === String(idReleve));
-}
-
-function normaliserLignesReleve(releve) {
-  const lignes = Array.isArray(releve.lignes) && releve.lignes.length ? releve.lignes : [releve];
-  return lignes.map((ligne, index) => {
-    ['site', 'dateReleve', 'immatriculation'].forEach(key => {
-      if (!ligne[key]) throw new Error('Champ obligatoire manquant ligne ' + (index + 1) + ': ' + key);
-    });
-    if (ligne.heurePorteur === '' && ligne.heureAuxiliaires === '' && ligne.kilometrage === '') {
-      throw new Error('Heure ou kilometrage obligatoire ligne ' + (index + 1));
-    }
-    return {
-      idLigne: String(ligne.idLigne || Utilities.getUuid()),
-      site: String(ligne.site || '').trim(),
-      dateReleve: String(ligne.dateReleve || ''),
-      immatriculation: String(ligne.immatriculation || '').trim(),
-      heurePorteur: ligne.heurePorteur,
-      heureAuxiliaires: ligne.heureAuxiliaires,
-      kilometrage: ligne.kilometrage,
-      commentaire: String(ligne.commentaire || '').trim()
-    };
-  });
 }
 
 function login(pin, event) {
@@ -152,8 +83,6 @@ function getRelevesMensuels(event) {
     .filter(r => !mois || monthToKey(r.MOIS) === mois)
     .map(r => ({
       id: String(r.ID_RELEVE || ''),
-      idLigne: String(r.ID_LIGNE || ''),
-      numLigne: Number(r.NUM_LIGNE || 1),
       timestamp: dateToText(r.TIMESTAMP),
       mois: monthToKey(r.MOIS),
       idConducteur: String(r.ID_CONDUCTEUR || ''),
@@ -166,10 +95,7 @@ function getRelevesMensuels(event) {
       heurePorteur: r.HEURE_PORTEUR || '',
       heureAuxiliaires: r.HEURE_AUXILIAIRES || '',
       kilometrage: r.KILOMETRAGE || '',
-      commentaire: String(r.COMMENTAIRE || ''),
-      statut: String(r.STATUT || 'ENVOYE'),
-      dateValidation: dateToText(r.DATE_VALIDATION),
-      responsableValidation: [r.PRENOM_RESPONSABLE, r.NOM_RESPONSABLE].filter(Boolean).join(' ')
+      commentaire: String(r.COMMENTAIRE || '')
     }))
     .sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
 
@@ -180,88 +106,58 @@ function getRelevesMensuels(event) {
 function saveReleveMensuel(payload, event) {
   const conducteur = payload.conducteur || {};
   const releve = payload.releve || {};
-  if (!releve.mois) throw new Error('Champ obligatoire manquant: mois');
-  const lignes = normaliserLignesReleve(releve);
-  const idReleve = String(releve.idReleve || Utilities.getUuid());
-  const sh = ensureReleveHeaders();
-  const existing = findRowsByReleveId(sh, idReleve);
-  const miseAJour = existing.length > 0;
+  const required = ['mois', 'site', 'dateReleve', 'immatriculation'];
 
-  if (existing.some(item => String(item.row.STATUT || '').toUpperCase() === 'VALIDE')) {
-    audit('MODIFICATION_REFUSEE_RELEVE_VALIDE', conducteur, 'Releve deja valide: ' + idReleve, event);
-    throw new Error('Ce releve a deja ete valide par le responsable.');
-  }
+  required.forEach(key => {
+    if (!releve[key]) throw new Error('Champ obligatoire manquant: ' + key);
+  });
 
-  const anciensIds = existing.map(item => String(item.row.ID_LIGNE || '')).filter(Boolean);
-  const nouveauxIds = lignes.map(ligne => String(ligne.idLigne || '')).filter(Boolean);
-  const idsSupprimes = anciensIds.filter(id => !nouveauxIds.includes(id));
+  const headers = [
+    'ID_RELEVE',
+    'TIMESTAMP',
+    'MOIS',
+    'ID_CONDUCTEUR',
+    'NOM',
+    'PRENOM',
+    'ROLE',
+    'SITE',
+    'DATE_RELEVE',
+    'IMMATRICULATION',
+    'HEURE_PORTEUR',
+    'HEURE_AUXILIAIRES',
+    'KILOMETRAGE',
+    'COMMENTAIRE'
+  ];
 
-  existing.sort((a, b) => b.rowIndex - a.rowIndex).forEach(item => sh.deleteRow(item.rowIndex));
-
-  const timestamp = new Date();
-  const rowsToWrite = lignes.map((ligne, index) => ({
-    ID_RELEVE: idReleve,
-    ID_LIGNE: ligne.idLigne || Utilities.getUuid(),
-    NUM_LIGNE: index + 1,
-    TIMESTAMP: timestamp,
+  const row = {
+    ID_RELEVE: Utilities.getUuid(),
+    TIMESTAMP: new Date(),
     MOIS: releve.mois || '',
     ID_CONDUCTEUR: conducteur.id || '',
     NOM: conducteur.nom || '',
     PRENOM: conducteur.prenom || '',
     ROLE: conducteur.role || '',
-    SITE: ligne.site || '',
-    DATE_RELEVE: ligne.dateReleve || '',
-    IMMATRICULATION: ligne.immatriculation || '',
-    HEURE_PORTEUR: numberOrBlank(ligne.heurePorteur),
-    HEURE_AUXILIAIRES: numberOrBlank(ligne.heureAuxiliaires),
-    KILOMETRAGE: numberOrBlank(ligne.kilometrage),
-    COMMENTAIRE: ligne.commentaire || '',
-    STATUT: 'ENVOYE',
-    DATE_VALIDATION: '',
-    ID_RESPONSABLE: '',
-    NOM_RESPONSABLE: '',
-    PRENOM_RESPONSABLE: ''
-  }));
+    SITE: releve.site || '',
+    DATE_RELEVE: releve.dateReleve || '',
+    IMMATRICULATION: releve.immatriculation || '',
+    HEURE_PORTEUR: numberOrBlank(releve.heurePorteur),
+    HEURE_AUXILIAIRES: numberOrBlank(releve.heureAuxiliaires),
+    KILOMETRAGE: numberOrBlank(releve.kilometrage),
+    COMMENTAIRE: releve.commentaire || ''
+  };
 
+  const sh = sheet(SHEETS.releves);
   const nextRow = sh.getLastRow() + 1;
-  sh.getRange(nextRow, 1, rowsToWrite.length, RELEVE_HEADERS.length)
-    .setValues(rowsToWrite.map(row => RELEVE_HEADERS.map(h => row[h] ?? '')));
-  sh.getRange(nextRow, 3, rowsToWrite.length, 1).setNumberFormat('@').setValues(rowsToWrite.map(row => [String(row.MOIS || '')]));
-  sh.getRange(nextRow, 9, rowsToWrite.length, 1).setNumberFormat('@').setValues(rowsToWrite.map(row => [String(row.DATE_RELEVE || '')]));
+  sh.getRange(nextRow, 1, 1, headers.length).setValues([headers.map(h => row[h] ?? '')]);
+  sh.getRange(nextRow, 3).setNumberFormat('@').setValue(String(row.MOIS || ''));
+  sh.getRange(nextRow, 9).setNumberFormat('@').setValue(String(row.DATE_RELEVE || ''));
+  audit('ENVOI_RELEVE', conducteur, `Mois ${row.MOIS}, engin ${row.IMMATRICULATION}, site ${row.SITE}`, event);
+  envoyerMailResponsable(row);
 
-  if (idsSupprimes.length) {
-    audit('SUPPRESSION_LIGNE', conducteur, 'Releve ' + idReleve + ', lignes supprimees: ' + idsSupprimes.join(', '), event);
-  }
-  audit(miseAJour ? 'MISE_A_JOUR_RELEVE' : 'ENVOI_RELEVE', conducteur, `Mois ${releve.mois}, lignes ${rowsToWrite.length}`, event);
-  envoyerMailResponsable(rowsToWrite[0], rowsToWrite.length, miseAJour);
-
-  return { success: true, id: idReleve, statut: 'ENVOYE', miseAJour: miseAJour };
+  return { success: true, id: row.ID_RELEVE };
 }
 
-function validerReleveMensuel(payload, event) {
-  const responsable = payload.responsable || {};
-  if (String(responsable.role || '').toLowerCase() !== 'responsable') {
-    audit('VALIDATION_REFUSEE', responsable, 'Acces validation refuse', event);
-    throw new Error('Acces reserve au responsable');
-  }
-  const idReleve = String(payload.idReleve || '');
-  if (!idReleve) throw new Error('ID releve manquant');
-  const sh = ensureReleveHeaders();
-  const existing = findRowsByReleveId(sh, idReleve);
-  if (!existing.length) throw new Error('Releve introuvable');
-  const dateValidation = new Date();
-  existing.forEach(item => {
-    sh.getRange(item.rowIndex, RELEVE_HEADERS.indexOf('STATUT') + 1).setValue('VALIDE');
-    sh.getRange(item.rowIndex, RELEVE_HEADERS.indexOf('DATE_VALIDATION') + 1).setValue(dateValidation);
-    sh.getRange(item.rowIndex, RELEVE_HEADERS.indexOf('ID_RESPONSABLE') + 1).setValue(responsable.id || '');
-    sh.getRange(item.rowIndex, RELEVE_HEADERS.indexOf('NOM_RESPONSABLE') + 1).setValue(responsable.nom || '');
-    sh.getRange(item.rowIndex, RELEVE_HEADERS.indexOf('PRENOM_RESPONSABLE') + 1).setValue(responsable.prenom || '');
-  });
-  audit('VALIDATION_RELEVE', responsable, 'Releve valide: ' + idReleve, event);
-  return { success: true, id: idReleve, statut: 'VALIDE' };
-}
-
-function envoyerMailResponsable(row, nombreLignes, miseAJour) {
+function envoyerMailResponsable(row) {
   const responsables = rows(SHEETS.conducteurs)
     .filter(c => String(c.ROLE || '').toLowerCase() === 'responsable' && String(c.ACTIF || 'OUI').toUpperCase() !== 'NON');
 
@@ -275,14 +171,13 @@ function envoyerMailResponsable(row, nombreLignes, miseAJour) {
   }
 
   const urlApplication = 'https://baouzjulien.github.io/projet-releve-heures-mensuel-engin/';
-  const sujet = `${miseAJour ? 'Mise a jour' : 'Nouveau'} relevé mensuel engin - ${row.IMMATRICULATION} - ${monthToFrenchText(row.MOIS)}`;
+  const sujet = `Nouveau relevé mensuel engin - ${row.IMMATRICULATION} - ${monthToFrenchText(row.MOIS)}`;
   const corps = [
-    miseAJour ? 'Un relevé mensuel engin a été mis a jour.' : 'Un nouveau relevé mensuel engin a été envoyé.',
+    'Un nouveau relevé mensuel engin a été envoyé.',
     '',
     `Envoyé le : ${dateTimeToFrenchText(row.TIMESTAMP)}`,
     `Chauffeur : ${row.PRENOM} ${row.NOM}`,
     `Mois : ${monthToFrenchText(row.MOIS)}`,
-    `Nombre de lignes : ${nombreLignes || 1}`,
     `Site : ${row.SITE}`,
     `Date : ${dateToFrenchText(row.DATE_RELEVE)}`,
     `Immatriculation : ${row.IMMATRICULATION}`,
